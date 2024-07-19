@@ -1,10 +1,11 @@
 ﻿<Window x:Class="VimCanvasApp.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="VsVim" Height="350" Width="525">
+        Title="VsVim" Height="1024" Width="525">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -36,6 +37,9 @@
                 
             </TabControl>
         </DockPanel>
+        <InkCanvas Grid.Row="2">
+            
+        </InkCanvas>
 
     </Grid>
 </Window>
