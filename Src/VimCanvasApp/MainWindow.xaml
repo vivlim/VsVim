@@ -1,0 +1,41 @@
+﻿<Window x:Class="VimCanvasApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="VsVim" Height="350" Width="525">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Menu IsMainMenu="True" Grid.Row="0">
+            <MenuItem Header="File">
+                <MenuItem Header="Open" Click="OnOpenClick" />
+                <MenuItem Header="New Tab" Click="OnNewTabClick" />
+            </MenuItem>
+            <MenuItem Header="Custom">
+                <MenuItem Header="Issue 1074">
+                    <MenuItem Header="Set Scenario" Click="OnLeaderSetClick" />
+                    <MenuItem Header="type ö" Click="OnLeaderTypeClick" />
+                </MenuItem>
+                <MenuItem Header="Issue 1479" Click="OnAddUndoSelectionChangeClick" />
+                <MenuItem Header="Set Scenario" Click="OnLeaderSetClick" />
+                <MenuItem Header="type ö" Click="OnLeaderTypeClick" />
+
+                <MenuItem Header="Insert Control Characters" Click="OnInsertControlCharactersClick" />
+                <MenuItem Header="Run Custom Scenario" Click="OnCustomScenarioClick" />
+                <MenuItem Header="Run GC" Click="OnRunGarbageCollectorClick" />
+            </MenuItem>
+            <MenuItem Header="Options">
+                <MenuItem Name="_displayNewLinesMenuItem" Header="Display New Lines" IsCheckable="True" IsChecked="False" Checked="OnDisplayNewLinesChecked" Unchecked="OnDisplayNewLinesChecked" />
+            </MenuItem>
+        </Menu>
+
+        <DockPanel LastChildFill="True" Name="_dockPanel" Grid.Row="1">
+            <TabControl Name="_tabControl">
+                
+            </TabControl>
+        </DockPanel>
+
+    </Grid>
+</Window>

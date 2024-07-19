@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <DefineConstants>$(DefineConstants);VS_SPECIFIC_VIM_APP</DefineConstants>
+    <VsVimVisualStudioTargetVersion>17.0</VsVimVisualStudioTargetVersion>
+    <VsVimProjectType>EditorHost</VsVimProjectType>
+    <!-- Temporary fix for https://github.com/dotnet/sdk/issues/34438 -->
+    <EmbedUntrackedSources>false</EmbedUntrackedSources>
+    <!-- 
+	    Disabling the VS threading analyzers here. This is a run of the mill WPF project and 
+		doesn't benefit from these analyzers.
+    -->
+    <NoWarn>$(NoWarn);VSTHRD110;VSTHRD001</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Page Update="MainWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\VimCore\VimCore.fsproj" />
+    <ProjectReference Include="..\VimTestUtils\VimTestUtils.csproj" />
+    <Reference Include="Microsoft.VisualStudio.Setup.Configuration.Interop, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </Reference>
+  </ItemGroup>
+  <Import Project="..\VimWpf\VimWpf.projitems" Label="Shared" />
+  <Import Project="..\VimEditorHost\VimEditorHost.projitems" Label="Shared" />
+
+</Project>

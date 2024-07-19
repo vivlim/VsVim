@@ -73,15 +73,22 @@ namespace Vim.UI.Wpf
         {
             var protectedAction = protectedOperations.GetProtectedAction(action);
 
+            // vivlim hack
+            return protectedOperations.JoinableTaskFactory.RunAsync(async () =>
+            {
+                await Task.Yield();
+                protectedAction();
+            });
+
             // This is meant to emulate Dispatcher.CurrentDispatcher.BeginInvok as closely as possible 
             // using JoinableTaskFactory. This is the pattern recommended by the library
             // https://github.com/microsoft/vs-threading/discussions/1056
-            return protectedOperations.JoinableTaskFactory.WithPriority(Dispatcher.CurrentDispatcher, dispatcherPriority).RunAsync(
-                async () =>
-                {
-                    await Task.Yield();
-                    protectedAction();
-                });
+            //return protectedOperations.JoinableTaskFactory.WithPriority(Dispatcher.CurrentDispatcher, dispatcherPriority).RunAsync(
+            //    async () =>
+            //    {
+            //        await Task.Yield();
+            //        protectedAction();
+            //    });
         }
 
         #endregion
