@@ -139,7 +139,7 @@ namespace VimCanvasApp.Implementation.NewLineDisplay
 
         private class LineMappedStrokeCollection
         {
-            private readonly List<LineStroke> lineStrokes = new();
+            private readonly HashSet<LineStroke> lineStrokes = new();
 
             public LineMappedStrokeCollection()
             {
@@ -152,70 +152,95 @@ namespace VimCanvasApp.Implementation.NewLineDisplay
                 var bottomLine = textView.TextViewLines.GetTextViewLineContainingYCoordinate(bounds.Bottom);
                 double? linePixelDistance = null;
 
-                if (topLine != null)
+                if (topLine != null && bottomLine != null)
                 {
-                    var translate = new TranslateTransform(0.0, -topLine.TextTop);
-                    stroke = stroke.Clone();
-                    stroke.Transform(translate.Value, applyToStylusTip: false);
-
-                    if (bottomLine != null)
-                    {
-                        linePixelDistance = bottomLine.TextTop - topLine.TextTop;
-                    }
+                    linePixelDistance = bottomLine.TextBottom - topLine.TextTop;
                 }
 
-
-                this.lineStrokes.Add(new(topLine?.Start, bottomLine?.End, linePixelDistance, stroke));
+                this.lineStrokes.Add(new LineStroke {
+                    Top = topLine?.Start,
+                    Bottom = bottomLine?.End,
+                    LastTopY = topLine?.TextTop,
+                    LastBottomY = bottomLine?.TextBottom,
+                    Stroke = stroke
+                });
             }
 
 
-            public IReadOnlyList<Stroke> GetStrokes(IWpfTextView textView)
+            public ICollection<Stroke> GetStrokes(IWpfTextView textView)
             {
                 List<LineStroke> strokesToRemove = new();
-                var translatedStrokes =  this.lineStrokes.Select(s =>
+                foreach (var s in this.lineStrokes)
                 {
-                    var stroke = s.stroke.Clone();
-                    if (s.top is SnapshotPoint origTop)
+                    if (s.Top is SnapshotPoint origTop && s.LastTopY is double lastTopY)
                     {
                         var newTop = origTop.TranslateTo(textView.TextSnapshot, PointTrackingMode.Negative);
                         if (textView.TryGetTextViewLineContainingBufferPosition(newTop, out var topLine))
                         {
-                            var translate = new TranslateTransform(0.0, topLine.TextTop);
-                            stroke.Transform(translate.Value, applyToStylusTip: false);
-
-                            if (s.bottom is SnapshotPoint origBottom && s.linePixelDistance is double origLinePixelDistance)
+                            if (s.Bottom is SnapshotPoint origBottom && s.LastBottomY is double lastBottomY)
                             {
                                 var newBottom = origBottom.TranslateTo(textView.TextSnapshot, PointTrackingMode.Negative);
                                 if (textView.TryGetTextViewLineContainingBufferPosition(newBottom, out var bottomLine))
                                 {
-                                    var newLinePixelDistance = bottomLine.TextTop - topLine.TextTop;
+                                    var newHeight = bottomLine.TextBottom - topLine.TextTop;
+                                    var lastHeight = lastBottomY - lastTopY;
 
-                                    if (newLinePixelDistance == 0.0)
+                                    if (newHeight <= 0.0)
                                     {
                                         strokesToRemove.Add(s);
                                     }
                                     else
                                     {
-                                        var verticalScaleFactor = newLinePixelDistance / origLinePixelDistance;
+                                        var verticalScaleFactor = newHeight / lastHeight;
                                         var scale = new ScaleTransform(1.0, verticalScaleFactor);
-                                        stroke.Transform(scale.Value, applyToStylusTip: false);
+                                        s.Stroke.Transform(scale.Value, applyToStylusTip: false);
                                     }
+
+
+                                    s.Bottom = newBottom;
+                                    s.LastBottomY = bottomLine.TextBottom;
+                                }
+                                else
+                                {
+                                    s.Bottom = null;
+                                    s.LastBottomY = null;
                                 }
                             }
+
+                            var yDelta = topLine.TextTop - lastTopY;
+                            if (yDelta != 0.0)
+                            {
+                                var translate = new TranslateTransform(0.0, yDelta);
+                                s.Stroke.Transform(translate.Value, applyToStylusTip: false);
+                                s.LastTopY = topLine.TextTop;
+                            }
+
+                            s.Top = newTop;
+                        }
+                        else
+                        {
+                            strokesToRemove.Add(s);
                         }
                     }
-
-                    return stroke;
-                }).ToArray();
+                }
 
                 foreach (var strokeToRemove in strokesToRemove)
                 {
                     this.lineStrokes.Remove(strokeToRemove);
                 }
-                return translatedStrokes;
+
+                return this.lineStrokes.Select(s => s.Stroke).ToList();
             }
 
-            private record LineStroke(SnapshotPoint? top, SnapshotPoint? bottom, double? linePixelDistance, Stroke stroke);
+            private class LineStroke
+            {
+                public SnapshotPoint? Top { get; set; }
+                public SnapshotPoint? Bottom { get; set; }
+
+                public double? LastTopY { get; set; }
+                public double? LastBottomY { get; set; }
+                public required Stroke Stroke { get; init; }
+            }
         }
     }
 }
