@@ -68,39 +68,38 @@ namespace VimCanvasApp.Implementation.NewLineDisplay
             CreateVisuals();
         }
 
-        private UIElement CreateAdornment(string text)
-        {
-            var inkCanvas = new InkCanvas
-            {
-                
-            };
-            //inkCanvas.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            inkCanvas.Measure(new Size(69, 69));
-            return inkCanvas;
-        }
-
         private void CreateVisuals()
         {
             //try
             //{
-            if (this._inkCanvas is InkCanvas existing)
-            {
-                // _adornmentLayer.RemoveAdornmentsByTag(adornmentTag);
-                //_adornmentLayer.RemoveAllAdornments();
-                //existing.StrokeCollected -= Canvas_StrokeCollected;
-                //existing.Background = Brushes.Red;
-                //this._inkCanvas = null;
-                this._inkCanvas.Strokes = new StrokeCollection(this._lineMappedStrokeCollection.GetStrokes(this._wpfTextView));
-            }
-            else
-            {
-                var inkCanvasAdornment = this.CreateCanvas();
-                inkCanvasAdornment.Background = new SolidColorBrush(Color.FromArgb(32, 128, 128, 128));
-                inkCanvasAdornment.Width = _adornmentLayer.TextView.ViewportWidth;
-                inkCanvasAdornment.Height = _adornmentLayer.TextView.ViewportHeight;
+            var width = Math.Max(_adornmentLayer.TextView.MaxTextRightCoordinate, _adornmentLayer.TextView.ViewportWidth);
+            _wpfTextView.TryGetTextViewLineContainingBufferPosition(_wpfTextView.GetLastLine().EndIncludingLineBreak, out var lastLine);
+            var height = _wpfTextView.ViewportHeight + lastLine?.TextBottom ?? 0.0;
 
-                _adornmentLayer.AddAdornment(AdornmentPositioningBehavior.ViewportRelative, null, adornmentTag, inkCanvasAdornment, null);
-                this._inkCanvas = inkCanvasAdornment;
+            if (width != 0.0 && height != 0.0)
+            {
+                if (this._inkCanvas is InkCanvas existing)
+                {
+                    // _adornmentLayer.RemoveAdornmentsByTag(adornmentTag);
+                    //_adornmentLayer.RemoveAllAdornments();
+                    //existing.StrokeCollected -= Canvas_StrokeCollected;
+                    //existing.Background = Brushes.Red;
+                    //this._inkCanvas = null;
+                    this._inkCanvas.Strokes = new StrokeCollection(this._lineMappedStrokeCollection.GetStrokes(this._wpfTextView));
+                    this._inkCanvas.Width = width;
+                    this._inkCanvas.Height = height;
+                }
+                else
+                {
+                    var inkCanvasAdornment = this.CreateCanvas();
+                    inkCanvasAdornment.Background = new SolidColorBrush(Color.FromArgb(32, 128, 128, 128));
+                    inkCanvasAdornment.Width = width;
+                    inkCanvasAdornment.Height = height;
+
+                    _adornmentLayer.AddAdornment(AdornmentPositioningBehavior.OwnerControlled, null, adornmentTag, inkCanvasAdornment, null);
+                    this._inkCanvas = inkCanvasAdornment;
+                    //inkCanvasAdornment.IsEnabled = false;
+                }
             }
                 
                 //var firstLine = _adornmentLayer.TextView.GetFirstLine();
@@ -127,9 +126,42 @@ namespace VimCanvasApp.Implementation.NewLineDisplay
             //{
             //    this._lineMappedStrokeCollection.AddStroke(e.Stroke, this._wpfTextView);
             //};
+            canvas.IsHitTestVisible = false;
             canvas.StrokeCollected += Canvas_StrokeCollected;
+            canvas.PreviewMouseDown += Canvas_PreviewMouseDown;
+            canvas.PreviewStylusDown += Canvas_PreviewStylusDown;
+            canvas.PreviewTouchDown += Canvas_PreviewTouchDown;
+            canvas.StylusInRange += Canvas_StylusInRange;
+            canvas.StylusOutOfRange += Canvas_StylusOutOfRange;
+            _wpfTextView.VisualElement.StylusInRange += Canvas_StylusInRange;
+            _wpfTextView.VisualElement.StylusOutOfRange += Canvas_StylusOutOfRange;
 
             return canvas;
+        }
+
+        private void Canvas_PreviewTouchDown(object? sender, System.Windows.Input.TouchEventArgs e)
+        {
+            //e.Handled = true;
+        }
+
+        private void Canvas_PreviewStylusDown(object sender, System.Windows.Input.StylusDownEventArgs e)
+        {
+            //e.Handled = false;
+        }
+
+        private void Canvas_PreviewMouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            //e.Handled = true;
+        }
+
+        private void Canvas_StylusOutOfRange(object sender, System.Windows.Input.StylusEventArgs e)
+        {
+            this._inkCanvas.IsHitTestVisible = false;
+        }
+
+        private void Canvas_StylusInRange(object sender, System.Windows.Input.StylusEventArgs e)
+        {
+            this._inkCanvas.IsHitTestVisible = true;
         }
 
         private void Canvas_StrokeCollected(object sender, InkCanvasStrokeCollectedEventArgs e)
@@ -177,7 +209,8 @@ namespace VimCanvasApp.Implementation.NewLineDisplay
                         var newTop = origTop.TranslateTo(textView.TextSnapshot, PointTrackingMode.Negative);
                         if (textView.TryGetTextViewLineContainingBufferPosition(newTop, out var topLine))
                         {
-                            if (s.Bottom is SnapshotPoint origBottom && s.LastBottomY is double lastBottomY)
+                            // scaling is off atm, might drop it
+                            if (false && s.Bottom is SnapshotPoint origBottom && s.LastBottomY is double lastBottomY)
                             {
                                 var newBottom = origBottom.TranslateTo(textView.TextSnapshot, PointTrackingMode.Negative);
                                 if (textView.TryGetTextViewLineContainingBufferPosition(newBottom, out var bottomLine))
