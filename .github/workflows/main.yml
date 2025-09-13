@@ -49,6 +49,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
+
+      - uses: dotnet/nbgv@master
+        id: nbgv
 
       - name: Build VSIX
         shell: powershell
@@ -60,10 +65,34 @@ jobs:
           name: Vsix
           path: Binaries\Deploy
 
-      - name: Publish VSIX to Open VSIX Gallery
+        # The vsix is currently not listed on the Open VSIX Gallery: #3002
+      # - name: Publish VSIX to Open VSIX Gallery
+      #   shell: powershell
+      #   run: Scripts\Build.ps1 -ci -uploadVsix -config Release
+      #   if: ${{ success() && github.ref == 'refs/heads/master' }}
+
+      - name: Prepare VSIXes for release
         shell: powershell
-        run: Scripts\Build.ps1 -ci -uploadVsix -config Release
-        if: ${{ success() && github.ref == 'refs/heads/master' }}
+        run: |
+          mkdir Binaries/ReleaseStaging
+          mv Binaries/Release/2022/VsVim.vsix Binaries/ReleaseStaging/VsVim_${{ steps.nbgv.outputs.AssemblyFileVersion }}.vsix
+          mv Binaries/Release/2019/VsVim.vsix Binaries/ReleaseStaging/VsVim2019_${{ steps.nbgv.outputs.AssemblyFileVersion }}.vsix
+
+      - name: Create VS extension release
+        uses: softprops/action-gh-release@v1
+        id: vsix_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        with:
+          name: 'VSVim ${{ steps.nbgv.outputs.AssemblyInformationalVersion }}'
+          draft: true
+          generate_release_notes: true
+          files: |
+            'Binaries/ReleaseStaging/VsVim_${{ steps.nbgv.outputs.AssemblyFileVersion }}.vsix'
+            'Binaries/ReleaseStaging/VsVim2019_${{ steps.nbgv.outputs.AssemblyFileVersion }}.vsix'
+        if: ${{ success() && startsWith(github.ref, 'refs/tags') && contains(github.ref, 'vsix') }}
+
+
 
   macos-build:
     name: MacOS Build and Publish
