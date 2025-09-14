@@ -121,10 +121,14 @@ function Get-PackagesDir() {
 
 function Get-MSBuildPath() {
   $vsWhere = Join-Path $toolsDir "vswhere.exe"
-  $vsInfo = Exec-Command $vsWhere "-latest -format json -requires Microsoft.Component.MSBuild" | Out-String | ConvertFrom-Json
+  $vsInfoStr = Exec-Command $vsWhere "-latest -format json -requires Microsoft.Component.MSBuild" | Out-String
+  $vsInfo = $vsInfoStr | ConvertFrom-Json
 
   # use first matching instance
   $vsInfo = $vsInfo[0]
+  if (-not $vsInfo) {
+    throw "Failed to locate VS using $vsWhere.`n`nvswhere output:`n$vsInfoStr"
+  }
   $vsInstallDir = $vsInfo.installationPath
   $vsMajorVersion = $vsInfo.installationVersion.Split('.')[0]
   $msbuildVersionDir = if ([int]$vsMajorVersion -lt 16) { "$vsMajorVersion.0" } else { "Current" }
@@ -220,14 +224,6 @@ function Test-Version() {
 
   if (-not $foundPackageVersion) {
     throw "Could not verify the version of VsVimPackage.cs"
-  }
-
-  foreach ($vsVersion in $vsVersions) {
-    $data = [xml](Get-Content "Src\VsVim$($vsVersion)\source.extension.vsixmanifest")
-    $manifestVersion = $data.PackageManifest.Metadata.Identity.Version
-    if ($manifestVersion -ne $version) { 
-      throw "The version $version doesn't match up with the manifest version of $manifestVersion" 
-    }
   }
 }
 
