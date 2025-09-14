@@ -107,9 +107,11 @@ jobs:
           name: 'VSVim ${{ steps.nbgv.outputs.AssemblyInformationalVersion }}'
           draft: true
           generate_release_notes: true
+          fail_on_unmatched_files: true
           files: |
-            'Binaries/ReleaseStaging/VsVim_${{ steps.nbgv.outputs.AssemblyFileVersion }}.vsix'
-            'Binaries/ReleaseStaging/VsVim2019_${{ steps.nbgv.outputs.AssemblyFileVersion }}.vsix'
+            Binaries/ReleaseStaging/VsVim_${{ steps.nbgv.outputs.AssemblyFileVersion }}.vsix
+            Binaries/ReleaseStaging/VsVim2019_${{ steps.nbgv.outputs.AssemblyFileVersion }}.vsix
+            Binaries/ReleaseStaging/feed.xml
         if: ${{ success() && startsWith(github.ref, 'refs/tags') && contains(github.ref, 'vsix') }}
 
 
