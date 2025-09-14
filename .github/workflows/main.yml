@@ -84,19 +84,19 @@ jobs:
         shell: powershell
         run: |
           $zipName = "PrivateGalleryCreator.zip"
-         Invoke-WebRequest -Uri https://github.com/madskristensen/PrivateGalleryCreator/releases/download/1.0.64/PrivateGalleryCreator.zip -OutFile $zipName
-         $zipHash = (Get-FileHash $zipName).Hash -ne "ha"
-         $expectedZipHash = "B410F7C9B93D319F5B7791687DEDA08378955AE45B7B5BD7EFC65D937FC160CA"
-         if ($zipHash -ne $expectedZipHash) {
-           Write-Error "$zipName integrity check failed; expected $expectedZipHash, got $zipHash"
-           exit 1
-         }
-
-         Expand-Archive PrivateGalleryCreator.zip -DestinationPath .
-         $tool = Resolve-Path ./PrivateGalleryCreator.exe
-         pushd Binaries/ReleaseStaging
-         & $tool
-         cat feed.xml
+          Invoke-WebRequest -Uri https://github.com/madskristensen/PrivateGalleryCreator/releases/download/1.0.64/PrivateGalleryCreator.zip -OutFile $zipName
+          $zipHash = (Get-FileHash $zipName).Hash -ne "ha"
+          $expectedZipHash = "B410F7C9B93D319F5B7791687DEDA08378955AE45B7B5BD7EFC65D937FC160CA"
+          if ($zipHash -ne $expectedZipHash) {
+            Write-Error "$zipName integrity check failed; expected $expectedZipHash, got $zipHash"
+            exit 1
+          }
+ 
+          Expand-Archive PrivateGalleryCreator.zip -DestinationPath .
+          $tool = Resolve-Path ./PrivateGalleryCreator.exe
+          pushd Binaries/ReleaseStaging
+          & $tool
+          cat feed.xml
 
       - name: Create VS extension release
         uses: softprops/action-gh-release@v1
