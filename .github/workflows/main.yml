@@ -23,6 +23,9 @@ jobs:
         with:
           fetch-depth: 0 # avoid shallow clone so nbgv can do its work.
 
+      - uses: dotnet/nbgv@master
+        id: nbgv
+
       - name: Build
         shell: powershell
         run: Scripts\Build.ps1 -ci -config Debug -build 
@@ -37,9 +40,31 @@ jobs:
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: Logs
           path: Binaries\Logs
+
+      - id: tag_name
+        name: Compose tag name
+        shell: powershell
+        run: |
+          $commitDate = "${{ steps.nbgv.outputs.GitCommitDate }}"
+          $commitDate = [DateTime]::parse($commitDate)
+          $commitDate = $commitDate.ToString("yyyyMMdd")
+          $simpleVersion = "${{ steps.nbgv.outputs.SimpleVersion }}"
+          $tag = "ci-$commitDate-$simpleVersion-vsix"
+          echo "Tag: $tag"
+          echo "tag=$tag`n" >> $env:GITHUB_OUTPUT
+        if: ${{ success() && github.ref == 'refs/heads/master' }}
+
+      - name: Create CI release tag
+        uses: actions-ecosystem/action-push-tag@v1
+        with:
+          tag: ${{ steps.tag_name.outputs.tag }}
+          message: '${{ steps.bump-semver.outputs.new_version }}: PR #${{ github.event.pull_request.number }} ${{ github.event.pull_request.title }}'
+        if: ${{ success() && github.ref == 'refs/heads/master' }}
+
 
   # This job is meant for building a Release VSIX for consumption and 
   # publishing it to two locations:
