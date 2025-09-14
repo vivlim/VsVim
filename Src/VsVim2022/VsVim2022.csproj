@@ -4,6 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <OutputType>Library</OutputType>
     <RootNamespace>Vim.VisualStudio</RootNamespace>
+    <NBGV_ThisAssemblyNamespace>$(RootNamespace)</NBGV_ThisAssemblyNamespace>
     <AssemblyName>VsVim</AssemblyName>
     <TargetFramework>net472</TargetFramework>
     <StartAction>Program</StartAction>

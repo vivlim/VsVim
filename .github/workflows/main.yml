@@ -96,7 +96,7 @@ jobs:
           $tool = Resolve-Path ./PrivateGalleryCreator.exe
           pushd Binaries/ReleaseStaging
           $tag = "${{ github.ref }}".Substring(10)
-          $ghRepo = "${{ env.GITHUB_REPOSITORY }}"
+          $ghRepo = "${{ github.repository }}"
           & $tool --input=$(pwd) --source="https://github.com/$ghRepo/releases/download/$tag/" -t
           cat feed.xml
         if: ${{ success() && startsWith(github.ref, 'refs/tags') && contains(github.ref, 'vsix') }}
