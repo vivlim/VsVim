@@ -95,8 +95,11 @@ jobs:
           Expand-Archive PrivateGalleryCreator.zip -DestinationPath .
           $tool = Resolve-Path ./PrivateGalleryCreator.exe
           pushd Binaries/ReleaseStaging
-          & $tool --input=$(pwd) -t
+          $tag = "${{ github.ref }}".Substring(10)
+          $ghRepo = "${{ env.GITHUB_REPOSITORY }}"
+          & $tool --input=$(pwd) --source="https://github.com/$ghRepo/releases/download/$tag/" -t
           cat feed.xml
+        if: ${{ success() && startsWith(github.ref, 'refs/tags') && contains(github.ref, 'vsix') }}
 
       - name: Create VS extension release
         uses: softprops/action-gh-release@v1
