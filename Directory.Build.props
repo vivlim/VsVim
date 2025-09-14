@@ -43,6 +43,9 @@
       $(ReferencePath);  
     </AssemblySearchPaths>
   </PropertyGroup>
+  <PropertyGroup>
+  <IncludePackageReferencesDuringMarkupCompilation>true</IncludePackageReferencesDuringMarkupCompilation>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Nerdbank.GitVersioning" Condition="!Exists('packages.config')">
       <PrivateAssets>all</PrivateAssets>
