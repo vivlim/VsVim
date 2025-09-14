@@ -95,7 +95,7 @@ jobs:
           Expand-Archive PrivateGalleryCreator.zip -DestinationPath .
           $tool = Resolve-Path ./PrivateGalleryCreator.exe
           pushd Binaries/ReleaseStaging
-          & $tool
+          & $tool --input=$(pwd) -t
           cat feed.xml
 
       - name: Create VS extension release
