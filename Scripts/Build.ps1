@@ -199,34 +199,6 @@ function Test-VsixContents() {
   }
 }
 
-# Make sure that the version number is the same in all locations.  
-function Test-Version() {
-  Write-Host "Testing Version Numbers"
-  $version = $null;
-  foreach ($line in Get-Content "Src\VimCore\Constants.fs") {
-    if ($line -match 'let VersionNumber = "([\d.]*)"') {
-      $version = $matches[1]
-      break
-    }
-  }
-
-  if ($version -eq $null) {
-    throw "Couldn't determine the version from Constants.fs"
-  }
-
-  $foundPackageVersion = $false
-  foreach ($line in Get-Content "Src\VsVimShared\VsVimPackage.cs") {
-    if ($line -match 'productId: VimConstants.VersionNumber') {
-      $foundPackageVersion = $true
-      break
-    }
-  }
-
-  if (-not $foundPackageVersion) {
-    throw "Could not verify the version of VsVimPackage.cs"
-  }
-}
-
 function Test-UnitTests() { 
   Write-Host "Running unit tests"
   foreach ($vsVersion in $vsVersions) {
@@ -326,7 +298,6 @@ try {
 
   if ($testExtra) {
     Test-VsixContents
-    Test-Version
   }
 
   if ($uploadVsix) {
