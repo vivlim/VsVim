@@ -15,6 +15,7 @@
     <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
     <VsVimProjectType>Vsix</VsVimProjectType>
     <VsVimVisualStudioTargetVersion>16.0</VsVimVisualStudioTargetVersion>
+    <UseWPF>true</UseWPF>
 
     <DeployExtension Condition="'$(VisualStudioVersion)' != '16.0' OR '$(BuildingInsideVisualStudio)' != 'true'">False</DeployExtension>
 
