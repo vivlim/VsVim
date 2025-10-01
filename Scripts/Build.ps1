@@ -267,9 +267,11 @@ function Build-Solution(){
       $cleanUtil = Join-Path $configDir "CleanVsix\net472\CleanVsix.exe"
       Exec-Console $cleanUtil (Join-Path $vsVersionDir "VsVim.vsix")
       Copy-Item "VsVim.vsix" "VsVim.zip"
-      # Clean up temporary files
-      Remove-Item "VsVim.orig.vsix"
-      Remove-Item "VsVim.zip"
+      if ($ci) {
+          # Clean up temporary files
+          Remove-Item "VsVim.orig.vsix"
+          Remove-Item "VsVim.zip"
+      }
       Set-Location ..
     }
   }
