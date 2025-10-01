@@ -116,7 +116,7 @@ jobs:
           echo "creating tag: ${{ steps.tag_name.outputs.tag }}"
           git tag ${{ steps.tag_name.outputs.tag }}
           git push origin ${{ steps.tag_name.outputs.tag }}
-        if: ${{ success() && github.ref == 'refs/heads/master' }}
+        # if: ${{ success() && github.ref == 'refs/heads/master' }}
 
       - name: Build VSIX feed
         shell: powershell
@@ -137,7 +137,7 @@ jobs:
           $ghRepo = "${{ github.repository }}"
           & $tool --input=$(pwd) --source="https://github.com/$ghRepo/releases/download/$tag/" -t
           cat feed.xml
-        if: ${{ success() && startsWith(github.ref, 'refs/tags') && contains(github.ref, 'vsix') }}
+        # if: ${{ success() && startsWith(github.ref, 'refs/tags') && contains(github.ref, 'vsix') }}
 
       - name: Create VS extension release
         uses: softprops/action-gh-release@v1
