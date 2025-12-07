@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Publisher="Jared Parsons" Version="|%CurrentProject%;GetBuildVersion|" Id="VsVim.Microsoft.e214908b-0458-4ae2-a583-4310f29687c3" Language="en-US" />
-    <DisplayName>VsVim</DisplayName>
-    <Description>VIM emulation layer for Visual Studio</Description>
-    <MoreInfo>https://github.com/VsVim/VsVim</MoreInfo>
+    <Identity Publisher="Vivian Lim" Version="|%CurrentProject%;GetBuildVersion|" Id="VsVim.vivlim.6c95c636-d304-11f0-ba4f-c4efbbf93856" Language="en-US" />
+    <DisplayName>VsVim (vivlim fork)</DisplayName>
+    <Description>Viv's personal fork of VsVim, a VIM emulation layer for Visual Studio.</Description>
+    <MoreInfo>https://github.com/vivlim/VsVim</MoreInfo>
     <License>License.txt</License>
     <Icon>VsVim_large.png</Icon>
     <PreviewImage>VsVim_small.png</PreviewImage>
