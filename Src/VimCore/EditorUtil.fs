@@ -181,7 +181,7 @@ type LineRange
 
     static member CreateFromBounds (startLineNumber: int) (lastLineNumber: int) = 
         if (lastLineNumber < startLineNumber) then
-            raise (new ArgumentOutOfRangeException("lastLineNumber", "Must be greater than startLineNmuber"))
+            raise (new ArgumentOutOfRangeException("lastLineNumber", "Must be greater than startLineNumber"))
 
         let count = (lastLineNumber - startLineNumber) + 1;
         new LineRange(startLineNumber, count)
