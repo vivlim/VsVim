@@ -265,6 +265,8 @@ namespace Vim.VisualStudio
         private readonly IClipboardDevice _clipboardDevice;
         private readonly SettingsSync _settingsSync;
 
+        private readonly LatchingFallback _dteVerticalSplit;
+
         private IVim _vim;
         private FindEvents _findEvents;
 
@@ -361,6 +363,19 @@ namespace Vim.VisualStudio
 
             _settingsSync = new SettingsSync(vimApplicationSettings, markDisplayUtil, controlCharUtil, _clipboardDevice);
             _settingsSync.SyncFromApplicationSettings();
+
+            _dteVerticalSplit = new(
+                action: () =>
+                {
+                    // Available in VS 2026; Window.NewWindow isn't
+                    _dte.ExecuteCommand("Windows.NewTabRight");
+                },
+                fallbackAction: () =>
+                {
+                    // Earlier versions
+                    _dte.ExecuteCommand("Window.NewWindow");
+                    _dte.ExecuteCommand("Window.NewVerticalTabGroup");
+                });
         }
 
         /// <summary>
@@ -1105,8 +1120,7 @@ namespace Vim.VisualStudio
         {
             try
             {
-                _dte.ExecuteCommand("Window.NewWindow");
-                _dte.ExecuteCommand("Window.NewVerticalTabGroup");
+                _dteVerticalSplit.Execute();
             }
             catch (Exception e)
             {
