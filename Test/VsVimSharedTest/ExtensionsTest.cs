@@ -141,7 +141,7 @@ namespace Vim.VisualStudio.UnitTest
             [Fact]
             public void FirstTimeLayerNotPresent()
             {
-                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Throws(new Exception());
+                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Throws(new ArgumentOutOfRangeException());
                 Assert.Null(_wpfTextView.Object.GetAdornmentLayerNoThrow(s_layerName, s_layerKey));
             }
 
@@ -153,10 +153,10 @@ namespace Vim.VisualStudio.UnitTest
             [Fact]
             public void SecondTimeLayerNotPresent()
             {
-                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Throws(new Exception());
+                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Throws(new ArgumentOutOfRangeException());
                 Assert.Null(_wpfTextView.Object.GetAdornmentLayerNoThrow(s_layerName, s_layerKey));
                 var calledAgain = false;
-                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Callback(() => { calledAgain = true; }).Throws(new Exception());
+                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Callback(() => { calledAgain = true; }).Throws(new ArgumentOutOfRangeException());
                 Assert.Null(_wpfTextView.Object.GetAdornmentLayerNoThrow(s_layerName, s_layerKey));
                 Assert.False(calledAgain);
             }
@@ -167,6 +167,114 @@ namespace Vim.VisualStudio.UnitTest
                 var layer = _factory.Create<IAdornmentLayer>().Object;
                 _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Returns(layer);
                 Assert.Same(layer, _wpfTextView.Object.GetAdornmentLayerNoThrow(s_layerName, s_layerKey));
+            }
+
+            /// <summary>
+            /// A layer that was found is cached the same way a missing one is.  Every call after the first
+            /// should be a lookup on the view instead of a trip back through the editor, because the editor
+            /// call creates the layer as a side effect and that isn't always safe to do
+            /// </summary>
+            [Fact]
+            public void SecondTimeLayerPresent()
+            {
+                var layer = _factory.Create<IAdornmentLayer>().Object;
+                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Returns(layer);
+                Assert.Same(layer, _wpfTextView.Object.GetAdornmentLayerNoThrow(s_layerName, s_layerKey));
+                var calledAgain = false;
+                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Callback(() => { calledAgain = true; }).Returns(layer);
+                Assert.Same(layer, _wpfTextView.Object.GetAdornmentLayerNoThrow(s_layerName, s_layerKey));
+                Assert.False(calledAgain);
+            }
+
+            /// <summary>
+            /// Only ArgumentOutOfRangeException means "this view has no layer by that name".  Any other
+            /// exception is the editor failing to answer, and caching that would disable the lookup for
+            /// the life of the view
+            /// </summary>
+            [Fact]
+            public void UnexpectedFailureIsNotCached()
+            {
+                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Throws(new InvalidOperationException());
+                Assert.Null(_wpfTextView.Object.GetAdornmentLayerNoThrow(s_layerName, s_layerKey));
+
+                var layer = _factory.Create<IAdornmentLayer>().Object;
+                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Returns(layer);
+                Assert.Same(layer, _wpfTextView.Object.GetAdornmentLayerNoThrow(s_layerName, s_layerKey));
+            }
+
+            /// <summary>
+            /// Same rule for an exception type we don't recognize at all
+            /// </summary>
+            [Fact]
+            public void UnknownFailureIsNotCached()
+            {
+                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Throws(new Exception());
+                Assert.Null(_wpfTextView.Object.GetAdornmentLayerNoThrow(s_layerName, s_layerKey));
+
+                var layer = _factory.Create<IAdornmentLayer>().Object;
+                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Returns(layer);
+                Assert.Same(layer, _wpfTextView.Object.GetAdornmentLayerNoThrow(s_layerName, s_layerKey));
+            }
+        }
+
+        public sealed class TryGetCachedAdornmentLayerTest : ExtensionsTest
+        {
+            private static readonly object s_layerKey = new object();
+            private static readonly string s_layerName = "MyAdornmentLayer";
+            private readonly Mock<IWpfTextView> _wpfTextView;
+            private readonly PropertyCollection _propertyCollection;
+
+            public TryGetCachedAdornmentLayerTest()
+            {
+                _propertyCollection = new PropertyCollection();
+                _wpfTextView = _factory.Create<IWpfTextView>();
+                _wpfTextView.SetupGet(x => x.Properties).Returns(_propertyCollection);
+            }
+
+            /// <summary>
+            /// Nothing has resolved the layer yet so there is no answer to give.  Importantly this must not
+            /// fall back to asking the editor, because that would create the layer
+            /// </summary>
+            [Fact]
+            public void NotPrimed()
+            {
+                Assert.False(_wpfTextView.Object.TryGetCachedAdornmentLayer(s_layerName, s_layerKey, out IAdornmentLayer layer));
+                Assert.Null(layer);
+                _wpfTextView.Verify(x => x.GetAdornmentLayer(It.IsAny<string>()), Times.Never());
+            }
+
+            [Fact]
+            public void PrimedWithLayer()
+            {
+                var expected = _factory.Create<IAdornmentLayer>().Object;
+                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Returns(expected);
+                _wpfTextView.Object.GetAdornmentLayerNoThrow(s_layerName, s_layerKey);
+
+                Assert.True(_wpfTextView.Object.TryGetCachedAdornmentLayer(s_layerName, s_layerKey, out IAdornmentLayer layer));
+                Assert.Same(expected, layer);
+            }
+
+            /// <summary>
+            /// The layer isn't defined for this view.  That is a real answer, not a cache miss
+            /// </summary>
+            [Fact]
+            public void PrimedWithoutLayer()
+            {
+                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Throws(new ArgumentOutOfRangeException());
+                _wpfTextView.Object.GetAdornmentLayerNoThrow(s_layerName, s_layerKey);
+
+                Assert.True(_wpfTextView.Object.TryGetCachedAdornmentLayer(s_layerName, s_layerKey, out IAdornmentLayer layer));
+                Assert.Null(layer);
+            }
+
+            [Fact]
+            public void PrimingFailedTransiently()
+            {
+                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Throws(new InvalidOperationException());
+                _wpfTextView.Object.GetAdornmentLayerNoThrow(s_layerName, s_layerKey);
+
+                Assert.False(_wpfTextView.Object.TryGetCachedAdornmentLayer(s_layerName, s_layerKey, out IAdornmentLayer layer));
+                Assert.Null(layer);
             }
         }
     }

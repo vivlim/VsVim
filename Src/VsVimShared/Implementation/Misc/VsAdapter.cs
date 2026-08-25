@@ -23,6 +23,8 @@ namespace Vim.VisualStudio.Implementation.Misc
     [Export(typeof(IVsAdapter))]
     internal sealed class VsAdapter : IVsAdapter
     {
+        internal const string FindUIAdornmentLayerName = "FindUIAdornmentLayer";
+
         private static readonly object s_findUIAdornmentLayerKey = new object();
 
         /// <summary>
@@ -392,6 +394,24 @@ namespace Vim.VisualStudio.Implementation.Misc
         }
 
         /// <summary>
+        /// Resolve the find adornment layer for this view up front.
+        ///
+        /// IsIncrementalSearchActiveScreenScrape has to look at that layer, but the only editor API that
+        /// hands one back creates it when it doesn't exist yet, and creating it is unsafe from where that
+        /// probe runs. 
+        /// The InLayout check makes this safe to call from anywhere.  Callers can't always prove they are
+        /// outside a layout pass, and declining to prime is always better than mutating the visual tree
+        /// while WPF walks it.  A view that gets skipped is picked up by the next priming attempt.
+        /// </summary>
+        internal void PrimeFindAdornmentLayer(ITextView textView)
+        {
+            if (textView is IWpfTextView wpfTextView && !wpfTextView.IsClosed && !wpfTextView.InLayout)
+            {
+                wpfTextView.GetAdornmentLayerNoThrow(FindUIAdornmentLayerName, s_findUIAdornmentLayerKey);
+            }
+        }
+
+        /// <summary>
         /// Visual Studio 2012 introduced a new form of incremental search in the find / replace UI
         /// implementation.  It doesn't implement the IIncrementalSearch interface and doesn't expose
         /// whether or not it's active via any public API.
@@ -399,6 +419,14 @@ namespace Vim.VisualStudio.Implementation.Misc
         /// The best way to find if it's active is to look for the adornment itself and see if it or
         /// it's descendant has focus.  Because Visual Studio is using WPF hosted in a HWND it doesn't
         /// actually have keyboard focus, just normal focus
+        ///
+        /// This only ever reads a layer that has already been resolved by PrimeFindAdornmentLayer.  It is
+        /// reached from IOleCommandTarget.QueryStatus, and Visual Studio can raise QueryStatus synchronously
+        /// while WPF is laying the editor out: populating a command bar that is hosted inside an editor
+        /// adornment queries the status of every button from the middle of that adornment's measure pass.
+        /// Asking the editor for a layer there would create it, adding a child to the collection WPF is
+        /// enumerating.  That is the suspected cause of the InvalidOperationException reported from
+        /// Canvas.MeasureOverride, so this path must never do it.
         /// </summary>
         internal bool IsIncrementalSearchActiveScreenScrape(ITextView textView)
         {
@@ -408,7 +436,13 @@ namespace Vim.VisualStudio.Implementation.Misc
                 return false;
             }
 
-            var adornmentLayer = wpfTextView.GetAdornmentLayerNoThrow("FindUIAdornmentLayer", s_findUIAdornmentLayerKey);
+            if (!wpfTextView.TryGetCachedAdornmentLayer(FindUIAdornmentLayerName, s_findUIAdornmentLayerKey, out IAdornmentLayer adornmentLayer))
+            {
+                // The view hasn't been primed yet.  Report the find UI as inactive, which is the same
+                // answer this method gives whenever the find UI isn't up.
+                return false;
+            }
+
             if (adornmentLayer == null)
             {
                 return false;
@@ -537,6 +571,11 @@ namespace Vim.VisualStudio.Implementation.Misc
         bool IVsAdapter.IsIncrementalSearchActive(ITextView textView)
         {
             return IsIncrementalSearchActive(textView);
+        }
+
+        void IVsAdapter.PrimeFindAdornmentLayer(ITextView textView)
+        {
+            PrimeFindAdornmentLayer(textView);
         }
 
         bool IVsAdapter.IsVenusView(IVsTextView textView)

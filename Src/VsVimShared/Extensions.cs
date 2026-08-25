@@ -866,7 +866,20 @@ namespace Vim.VisualStudio
 
         /// <summary>
         /// There is no way to query for an IAdornmentLayer which returns null on a missing layer.  There is 
-        /// only the throwing version.  Wrap it here for the cases where we have to probe for a layer
+        /// only the throwing version, and that version *creates* the layer when it doesn't already exist.
+        /// Wrap it here for the cases where we have to probe for a layer.
+        ///
+        /// The answer is cached on the view.  A layer that was found is cached so later probes are a
+        /// dictionary lookup instead of a trip through the editor, and a view that has no such layer is
+        /// cached so we don't keep throwing and catching on a hot path.
+        ///
+        /// Only ArgumentOutOfRangeException - the editor's documented answer for "this view has no layer
+        /// by that name" - counts as a real answer.  Any other exception means the editor didn't answer at
+        /// all, so it is deliberately left uncached; caching it would turn one bad moment into a probe that
+        /// is disabled for the life of the view.
+        ///
+        /// Because this can create the layer it must not be called from anywhere that can run inside a WPF
+        /// layout pass.  Use <see cref="TryGetCachedAdornmentLayer"/> there instead.
         ///
         /// This is wrapped with DebuggerNonUserCode to prevent the Exception Assistant from popping up
         /// while running this method
@@ -874,19 +887,68 @@ namespace Vim.VisualStudio
         [DebuggerNonUserCode]
         public static IAdornmentLayer GetAdornmentLayerNoThrow(this IWpfTextView textView, string name, object key)
         {
+            if (textView.TryGetCachedAdornmentLayer(name, key, out IAdornmentLayer cached))
+            {
+                return cached;
+            }
+
             try
             {
-                if (textView.Properties.TryGetPropertySafe(key, out string found) && StringComparer.Ordinal.Equals(name, found))
+                var layer = textView.GetAdornmentLayer(name);
+                if (layer != null)
                 {
-                    return null;
+                    textView.Properties[key] = layer;
                 }
-                return textView.GetAdornmentLayer(name);
+
+                return layer;
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                // The editor's documented answer for "this view has no adornment layer by that name".
+                // That can't change for the life of the view, so record it and stop asking.
+                textView.Properties[key] = name;
+                return null;
             }
             catch
             {
-                textView.Properties.AddProperty(key, name);
+                // Anything else is a failure to answer rather than an answer.  Leave the cache alone so
+                // that a later probe gets another chance.
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Look up an IAdornmentLayer that was already resolved by <see cref="GetAdornmentLayerNoThrow"/>,
+        /// without ever creating one.
+        ///
+        /// IWpfTextView.GetAdornmentLayer creates the layer when it doesn't exist yet, and creating it adds
+        /// a child to the view's visual tree.  Doing that while WPF is enumerating those children - which is
+        /// the case for anything reached from a measure or arrange pass - invalidates the enumerator and
+        /// brings down the process.  Probes that can run during layout must use this method.
+        ///
+        /// Returns true when the answer is already known, with <paramref name="layer"/> set to the layer or
+        /// to null when the layer is known not to exist for this view.  Returns false when the view hasn't
+        /// been primed yet.
+        /// </summary>
+        public static bool TryGetCachedAdornmentLayer(this IWpfTextView textView, string name, object key, out IAdornmentLayer layer)
+        {
+            if (textView.Properties.TryGetPropertySafe(key, out object cached))
+            {
+                if (cached is IAdornmentLayer cachedLayer)
+                {
+                    layer = cachedLayer;
+                    return true;
+                }
+
+                if (cached is string cachedName && StringComparer.Ordinal.Equals(name, cachedName))
+                {
+                    layer = null;
+                    return true;
+                }
+            }
+
+            layer = null;
+            return false;
         }
 
         #endregion
