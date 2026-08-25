@@ -197,5 +197,13 @@ namespace Vim.UnitTest
             col.Clear();
             Assert.Equal(0, col.Count);
         }
+
+        [Fact]
+        public void InvalidRangeIgnored()
+        {
+            var col = Create(LineRange.CreateFromBounds(5, 5), new LineRange(10, -20));
+            Assert.Equal(1, col.Count);
+            Assert.Equal(LineRange.CreateFromBounds(5, 5), col.OverarchingLineRange.Value);
+        }
     }
 }
