@@ -20,6 +20,11 @@ namespace Vim.VisualStudio
         public const string FallbackKeyProcessorName = "VsVimFallback";
 
         /// <summary>
+        /// Name of the adornment layer that hosts the find / replace UI
+        /// </summary>
+        public const string FindUIAdornmentLayerName = "FindUIAdornmentLayer";
+
+        /// <summary>
         /// Name of the standard ICommandTarget implementation
         /// </summary>
         public const string StandardCommandTargetName = "Standard Command Target";

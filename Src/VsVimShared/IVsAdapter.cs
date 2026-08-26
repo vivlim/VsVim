@@ -61,21 +61,6 @@ namespace Vim.VisualStudio
         bool IsIncrementalSearchActive(ITextView textView);
 
         /// <summary>
-        /// Do the work that IsIncrementalSearchActive needs done ahead of time, while it is safe to do it.
-        ///
-        /// Detecting a Visual Studio incremental search means inspecting the find UI's adornment layer, and
-        /// the only editor API that returns a layer creates it when it isn't there yet.  IsIncrementalSearchActive
-        /// is called from IOleCommandTarget.QueryStatus, which Visual Studio can raise from inside a WPF
-        /// layout pass, and adding to the view's visual tree there is the suspected cause of a crash in
-        /// Canvas.MeasureOverride.
-        ///
-        /// This is safe to call repeatedly and from anywhere; it declines to do anything while the view is
-        /// laying out and does nothing once the view is primed.  Call it whenever there is a good chance
-        /// the view still needs it.
-        /// </summary>
-        void PrimeFindAdornmentLayer(ITextView textView);
-
-        /// <summary>
         /// Is this a Venus window
         /// </summary>
         bool IsVenusView(IVsTextView textView);

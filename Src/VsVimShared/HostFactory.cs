@@ -178,8 +178,9 @@ namespace Vim.VisualStudio
                 return;
             }
 
-            // The view isn't in a visual tree yet, so this is the safest moment there is to do it.
-            _adapter.PrimeFindAdornmentLayer(textView);
+            // The incremental search check reads this layer from QueryStatus, where creating it would
+            // mutate the visual tree mid-layout. Create it here instead, before the view is laid out.
+            textView.EnsureAdornmentLayer(VsVimConstants.FindUIAdornmentLayerName);
 
             // Visual Studio really puts us in a bind with respect to setting synchronization.  It doesn't
             // have a prescribed time to apply it's own customized settings and in fact differs between 
@@ -204,26 +205,8 @@ namespace Vim.VisualStudio
         void IVimBufferCreationListener.VimBufferCreated(IVimBuffer vimBuffer)
         {
             var textView = vimBuffer.TextView;
-
-            // Not every IVimBuffer comes through TextViewCreated above.  Taggers, margins, mouse and key
-            // processors all create one on demand, so a view can end up with an IVimBuffer - and hence with
-            // VsVim on its command chain - without that hook ever running.  Prime those views here too.
-            //
-            // This is posted rather than done inline because some of those creation paths run from inside a
-            // WPF layout pass, which is the one place resolving the layer is unsafe.  DispatcherPriority.Loaded
-            // is pumped by the dispatcher, so the callback is guaranteed to be outside any layout pass.
-            //
-            // The post alone isn't enough to rely on.  It is dropped if the view closes first, it never runs
-            // if this listener was raised off the UI thread, and priming can decline or fail.  A view that
-            // is never primed silently reports the find UI as inactive, so also retry on focus.  That costs
-            // a dictionary lookup once primed, and only a focused view can have the find UI up anyway.
-            void primeFindAdornmentLayer(object sender, EventArgs e) => _adapter.PrimeFindAdornmentLayer(textView);
-            textView.GotAggregateFocus += primeFindAdornmentLayer;
-            _ = _protectedOperations.RunAsync(() => _adapter.PrimeFindAdornmentLayer(textView), DispatcherPriority.Loaded);
-
             textView.Closed += (x, y) =>
             {
-                textView.GotAggregateFocus -= primeFindAdornmentLayer;
                 _toSyncSet.Remove(vimBuffer);
                 _vimBufferToCommandTargetMap.Remove(vimBuffer);
             };

@@ -6,9 +6,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Text.Editor;
 using Microsoft.VisualStudio.Text.IncrementalSearch;
 using Microsoft.VisualStudio.TextManager.Interop;
-using Microsoft.VisualStudio.Utilities;
 using Moq;
-using System.Collections.Generic;
 using Vim.UnitTest;
 using Vim.VisualStudio.Implementation.Misc;
 using Xunit;
@@ -140,86 +138,6 @@ namespace Vim.VisualStudio.UnitTest
                 var textView = CreateTextView();
                 _extensionAdapterBroker.Setup(x => x.IsIncrementalSearchActive(textView)).Returns(false);
                 Assert.False(_adapterRaw.IsIncrementalSearchActive(textView));
-            }
-
-            /// <summary>
-            /// This runs from IOleCommandTarget.QueryStatus, which Visual Studio raises from inside a WPF
-            /// layout pass.  Asking the editor for an adornment layer there creates it, which mutates the
-            /// visual tree WPF is walking and crashes the process.  The screen scrape must only ever read a
-            /// layer that PrimeFindAdornmentLayer already resolved
-            /// </summary>
-            [WpfFact]
-            public void ScreenScrapeNeverCreatesTheLayer()
-            {
-                var wpfTextView = new Mock<IWpfTextView>(MockBehavior.Strict);
-                wpfTextView.SetupGet(x => x.Properties).Returns(new PropertyCollection());
-
-                Assert.False(_adapterRaw.IsIncrementalSearchActiveScreenScrape(wpfTextView.Object));
-                wpfTextView.Verify(x => x.GetAdornmentLayer(It.IsAny<string>()), Times.Never());
-            }
-
-            /// <summary>
-            /// Priming is what makes the read-only screen scrape above able to see anything at all
-            /// </summary>
-            [WpfFact]
-            public void PrimingResolvesTheLayer()
-            {
-                var layer = _factory.Create<IAdornmentLayer>();
-                layer.SetupGet(x => x.Elements).Returns(new List<IAdornmentLayerElement>().AsReadOnly());
-
-                var wpfTextView = new Mock<IWpfTextView>(MockBehavior.Strict);
-                wpfTextView.SetupGet(x => x.Properties).Returns(new PropertyCollection());
-                wpfTextView.SetupGet(x => x.IsClosed).Returns(false);
-                wpfTextView.SetupGet(x => x.InLayout).Returns(false);
-                wpfTextView.Setup(x => x.GetAdornmentLayer(VsAdapter.FindUIAdornmentLayerName)).Returns(layer.Object);
-
-                _adapterRaw.PrimeFindAdornmentLayer(wpfTextView.Object);
-                wpfTextView.Verify(x => x.GetAdornmentLayer(VsAdapter.FindUIAdornmentLayerName), Times.Once());
-
-                // The layer is now cached, so the scrape can read it without going back to the editor
-                Assert.False(_adapterRaw.IsIncrementalSearchActiveScreenScrape(wpfTextView.Object));
-                wpfTextView.Verify(x => x.GetAdornmentLayer(VsAdapter.FindUIAdornmentLayerName), Times.Once());
-            }
-
-            /// <summary>
-            /// Creating the layer mutates the view's visual tree.  Doing that while WPF is walking that
-            /// tree is the crash this whole mechanism exists to avoid, so priming has to decline rather
-            /// than trust that every caller checked
-            /// </summary>
-            [WpfFact]
-            public void PrimingDeclinesDuringLayout()
-            {
-                var wpfTextView = new Mock<IWpfTextView>(MockBehavior.Strict);
-                wpfTextView.SetupGet(x => x.IsClosed).Returns(false);
-                wpfTextView.SetupGet(x => x.InLayout).Returns(true);
-
-                _adapterRaw.PrimeFindAdornmentLayer(wpfTextView.Object);
-                wpfTextView.Verify(x => x.GetAdornmentLayer(It.IsAny<string>()), Times.Never());
-            }
-
-            /// <summary>
-            /// A view that was skipped during layout has to be primeable later, otherwise it reports the
-            /// find UI as inactive forever
-            /// </summary>
-            [WpfFact]
-            public void PrimingRetriesAfterLayout()
-            {
-                var layer = _factory.Create<IAdornmentLayer>();
-                layer.SetupGet(x => x.Elements).Returns(new List<IAdornmentLayerElement>().AsReadOnly());
-
-                var inLayout = true;
-                var wpfTextView = new Mock<IWpfTextView>(MockBehavior.Strict);
-                wpfTextView.SetupGet(x => x.Properties).Returns(new PropertyCollection());
-                wpfTextView.SetupGet(x => x.IsClosed).Returns(false);
-                wpfTextView.SetupGet(x => x.InLayout).Returns(() => inLayout);
-                wpfTextView.Setup(x => x.GetAdornmentLayer(VsAdapter.FindUIAdornmentLayerName)).Returns(layer.Object);
-
-                _adapterRaw.PrimeFindAdornmentLayer(wpfTextView.Object);
-                wpfTextView.Verify(x => x.GetAdornmentLayer(It.IsAny<string>()), Times.Never());
-
-                inLayout = false;
-                _adapterRaw.PrimeFindAdornmentLayer(wpfTextView.Object);
-                wpfTextView.Verify(x => x.GetAdornmentLayer(VsAdapter.FindUIAdornmentLayerName), Times.Once());
             }
         }
 

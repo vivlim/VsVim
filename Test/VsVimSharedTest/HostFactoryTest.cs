@@ -37,7 +37,6 @@ namespace Vim.VisualStudio.UnitTest
 
             var vsAdapter = _mockFactory.Create<IVsAdapter>();
             vsAdapter.SetupGet(x => x.EditorAdapter).Returns(_vsEditorAdaptersFactoryService.Object);
-            vsAdapter.Setup(x => x.PrimeFindAdornmentLayer(It.IsAny<ITextView>()));
 
             _hostFactory = new HostFactory(
                 Vim,

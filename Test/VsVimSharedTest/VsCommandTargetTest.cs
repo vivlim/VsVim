@@ -287,6 +287,18 @@ namespace Vim.VisualStudio.UnitTest
                 _vsAdapter.Setup(x => x.IsIncrementalSearchActive(It.IsAny<ITextView>())).Returns(true);
                 AssertCannotConvert2K(VSConstants.VSStd2KCmdID.TAB);
             }
+
+            /// <summary>
+            /// A command that doesn't map to a KeyInput shouldn't reach the incremental search check.
+            /// QueryStatus runs for plenty of those and the check is expensive
+            /// </summary>
+            [WpfFact]
+            public void UnrelatedCommandSkipsIncrementalSearchCheck()
+            {
+                Assert.False(_targetRaw.TryConvert(Guid.NewGuid(), 42, IntPtr.Zero, out EditCommand editCommand));
+                Assert.Null(editCommand);
+                _vsAdapter.Verify(x => x.IsIncrementalSearchActive(It.IsAny<ITextView>()), Times.Never());
+            }
         }
 
         public sealed class QueryStatusTest : VsCommandTargetTest
