@@ -178,6 +178,10 @@ namespace Vim.VisualStudio
                 return;
             }
 
+            // The incremental search check reads this layer from QueryStatus, where creating it would
+            // mutate the visual tree mid-layout. Create it here instead, before the view is laid out.
+            textView.EnsureAdornmentLayer(VsVimConstants.FindUIAdornmentLayerName);
+
             // Visual Studio really puts us in a bind with respect to setting synchronization.  It doesn't
             // have a prescribed time to apply it's own customized settings and in fact differs between 
             // versions (2010 after TextViewCreated and 2012 is before).  If we start synchronizing 

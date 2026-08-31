@@ -408,7 +408,7 @@ namespace Vim.VisualStudio.Implementation.Misc
                 return false;
             }
 
-            var adornmentLayer = wpfTextView.GetAdornmentLayerNoThrow("FindUIAdornmentLayer", s_findUIAdornmentLayerKey);
+            var adornmentLayer = wpfTextView.GetAdornmentLayerNoThrow(VsVimConstants.FindUIAdornmentLayerName, s_findUIAdornmentLayerKey);
             if (adornmentLayer == null)
             {
                 return false;

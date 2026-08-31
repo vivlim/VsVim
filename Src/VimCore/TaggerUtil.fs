@@ -409,6 +409,8 @@ type internal CompleteReason =
 type internal NormalizedLineRangeCollection() = 
 
     let _list = List<LineRange>()
+    let isValid (lineRange: LineRange) =
+        lineRange.Count > 0 && lineRange.LastLineNumber >= lineRange.StartLineNumber
 
     member x.OverarchingLineRange =
         match _list.Count with
@@ -423,21 +425,22 @@ type internal NormalizedLineRangeCollection() =
         with get(index) = _list.[index]
        
     member x.Add (lineRange: LineRange) = 
-        match x.FindInsertionPoint lineRange.StartLineNumber with
-        | None ->
-            // Just insert at the end and let the collapse code do the work in this case 
-            _list.Add(lineRange)
-            x.CollapseIntersecting (_list.Count - 1)
-        | Some index ->
-            // Quick optimization check to avoid copying the contents of the List
-            // structure down on insert
-            let item = _list.[index]
-            if item.StartLineNumber = lineRange.StartLineNumber || lineRange.ContainsLineNumber(item.StartLineNumber) then
-                _list.[index] <- LineRange.CreateOverarching item lineRange
-            else
-                _list.Insert(index, lineRange)
-            x.CollapseIntersecting(index);
-       
+        if isValid lineRange then
+            match x.FindInsertionPoint lineRange.StartLineNumber with
+            | None ->
+                // Just insert at the end and let the collapse code do the work in this case 
+                _list.Add(lineRange)
+                x.CollapseIntersecting (_list.Count - 1)
+            | Some index ->
+                // Quick optimization check to avoid copying the contents of the List
+                // structure down on insert
+                let item = _list.[index]
+                if item.StartLineNumber = lineRange.StartLineNumber || lineRange.ContainsLineNumber(item.StartLineNumber) then
+                    _list.[index] <- LineRange.CreateOverarching item lineRange
+                else
+                    _list.Insert(index, lineRange)
+                x.CollapseIntersecting(index);
+        
     member x.Clear () = _list.Clear()
 
     member x.Contains lineRange = _list |> Seq.exists (fun x -> x.Contains lineRange)
