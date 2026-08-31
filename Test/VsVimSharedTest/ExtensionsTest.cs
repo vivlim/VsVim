@@ -169,5 +169,39 @@ namespace Vim.VisualStudio.UnitTest
                 Assert.Same(layer, _wpfTextView.Object.GetAdornmentLayerNoThrow(s_layerName, s_layerKey));
             }
         }
+
+        public sealed class EnsureAdornmentLayerTest : ExtensionsTest
+        {
+            private static readonly string s_layerName = "MyAdornmentLayer";
+            private readonly Mock<IWpfTextView> _wpfTextView;
+
+            public EnsureAdornmentLayerTest()
+            {
+                _wpfTextView = _factory.Create<IWpfTextView>();
+            }
+
+            /// <summary>
+            /// Asking for the layer is what creates it, so this has to go through to the editor
+            /// </summary>
+            [Fact]
+            public void CreatesTheLayer()
+            {
+                var layer = _factory.Create<IAdornmentLayer>().Object;
+                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Returns(layer);
+
+                _wpfTextView.Object.EnsureAdornmentLayer(s_layerName);
+                _wpfTextView.Verify(x => x.GetAdornmentLayer(s_layerName), Times.Once());
+            }
+
+            /// <summary>
+            /// A view that doesn't define the layer throws, and there is nothing to do about it
+            /// </summary>
+            [Fact]
+            public void LayerNotDefined()
+            {
+                _wpfTextView.Setup(x => x.GetAdornmentLayer(s_layerName)).Throws(new ArgumentOutOfRangeException());
+                _wpfTextView.Object.EnsureAdornmentLayer(s_layerName);
+            }
+        }
     }
 }

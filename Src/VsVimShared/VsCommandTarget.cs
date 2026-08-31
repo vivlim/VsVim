@@ -221,12 +221,6 @@ namespace Vim.VisualStudio
                 return false;
             }
 
-            // Don't intercept commands while incremental search is active.  Don't want to interfere with it
-            if (_vsAdapter.IsIncrementalSearchActive(_vimBuffer.TextView))
-            {
-                return false;
-            }
-
             var modifiers = _keyUtil.GetKeyModifiers(_vsAdapter.KeyboardDevice.Modifiers);
             if (!OleCommandUtil.TryConvert(commandGroup, commandId, variantIn, modifiers, out editCommand))
             {
@@ -237,6 +231,15 @@ namespace Vim.VisualStudio
             // then that command wins.
             if (editCommand.EditCommandKind == EditCommandKind.VisualStudioCommand)
             {
+                return false;
+            }
+
+            // Don't intercept commands while incremental search is active.
+            // This is checked last because it's the most expensive test here, and QueryStatus runs for plenty
+            // of commands that never map to a KeyInput.
+            if (_vsAdapter.IsIncrementalSearchActive(_vimBuffer.TextView))
+            {
+                editCommand = null;
                 return false;
             }
 

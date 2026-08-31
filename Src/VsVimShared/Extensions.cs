@@ -889,6 +889,27 @@ namespace Vim.VisualStudio
             }
         }
 
+        /// <summary>
+        /// Create the named adornment layer if the view doesn't have it yet, ignoring a view that doesn't
+        /// define it. Call this while the view is known not to be laying out, because creating a layer
+        /// mutates the visual tree.
+        ///
+        /// This is wrapped with DebuggerNonUserCode to prevent the Exception Assistant from popping up
+        /// while running this method
+        /// </summary>
+        [DebuggerNonUserCode]
+        public static void EnsureAdornmentLayer(this IWpfTextView textView, string name)
+        {
+            try
+            {
+                textView.GetAdornmentLayer(name);
+            }
+            catch
+            {
+                // The view doesn't define this layer, so there is nothing to create.
+            }
+        }
+
         #endregion
 
         #region ITextViewLineCollection
