@@ -1,7 +1,7 @@
 VsVim
 ===
 [VsVim](https://github.com/VsVim/VsVim) is a free vim emulator for Visual Studio 2019 through to 2026.
-This is Viv's personal fork of VsVim. It may contain unstable or experimental changes. Please only use it if you are OK with that.
+This is Viv's personal fork of VsVim. It may contain unstable or experimental changes. *Please* only use it if you are OK with that.
 
 It has a unique extension id compared to VsVim, and having both extensions installed at the same time is *very* likely to cause problems.
 
