@@ -151,7 +151,9 @@ function Test-VsixContents() {
       "Colors.pkgdef",
       "extension.vsixmanifest",
       "License.txt",
+      "System.Text.Encoding.CodePages.dll",
       "Vim.Core.dll",
+      "Vim.Core.pdb",
       "VsVim.dll",
       "VsVim.pkgdef",
       "VsVim_large.png",
@@ -168,9 +170,9 @@ function Test-VsixContents() {
     Exec-Command $zipUtil "x -o$target $vsixPath" | Out-Null
 
     $foundFiles = Get-ChildItem $target | %{ $_.Name }
-    if ($foundFiles.Count -ne $expectedFiles.Count) { 
+    if (Compare-Object $expectedFiles $foundFiles) {
       Write-TaskError "Found $($foundFiles.Count) but expected $($expectedFiles.Count)"
-      Write-TaskError "Wrong number of foundFiles in VSIX." 
+      Write-TaskError "Unexpected VSIX contents."
       Write-TaskError "Extra foundFiles"
       foreach ($file in $foundFiles) {
         if (-not $expectedFiles.Contains($file)) {
@@ -185,7 +187,7 @@ function Test-VsixContents() {
         }
       }
 
-      Write-TaskError "Location: $target"
+      throw "VSIX contents do not match the expected files. Location: $target"
     }
   }
 
@@ -278,6 +280,8 @@ function Build-Solution(){
   finally {
     Pop-Location
   }
+
+
 }
 
 Push-Location $rootDir
@@ -317,5 +321,3 @@ catch {
 finally {
   Pop-Location
 }
-
-
