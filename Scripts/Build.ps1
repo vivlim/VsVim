@@ -280,8 +280,6 @@ function Build-Solution(){
   finally {
     Pop-Location
   }
-
-
 }
 
 Push-Location $rootDir
@@ -321,3 +319,4 @@ catch {
 finally {
   Pop-Location
 }
+
